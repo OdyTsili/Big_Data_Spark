@@ -16,12 +16,7 @@ import org.apache.spark.ml.Transformer
 import org.apache.spark.sql.{Dataset,DataFrame}
 
 
-
-
-
-
 class CosineTrasfromer(override val uid: String) extends Transformer {
-
   def this() = this(Identifiable.randomUID("str"))
   final val inputCols = new Param[Array[String]](this, "inputCols", "The input column")
   final val outputCol = new Param[String](this, "outputCol", "The output column")
@@ -56,8 +51,7 @@ class CosineTrasfromer(override val uid: String) extends Transformer {
       .withColumnRenamed("cosSim","cS")
     val ds1 =   dss.join(dataset,dss("ID_22")===dataset("ID_2")).select("label1","ID_11","N11remWords","ID_22",
     "N2remWords","cS")
-    sparkSession.stop()
-    ds1.distinct().select(ds1("label1").as("label"),ds1("N11remWords").as("N1remWords"),
+    ds1.distinct().select(ds1("label1").as("label"),ds1("ID_11").as("ID_1"),ds1("N11remWords").as("N1remWords"),
       ds1("ID_22").as("ID_2"),ds1("N2remWords"),ds1("cS").as("cosineSimilarity"))
   }
   override def copy(extra: ParamMap): Transformer = defaultCopy(extra)
@@ -67,9 +61,6 @@ class CosineTrasfromer(override val uid: String) extends Transformer {
     schema.add(StructField($(outputCol), DoubleType, false))
   }
 }
-
-
-
 
 object Big_Data {
   val trainSchema = StructType(Array(
@@ -168,8 +159,7 @@ object Big_Data {
 
     // Chain indexers and tree in a Pipeline.
     val pipeline = new Pipeline()
-      .setStages(Array(sqlDF, tokDF1,tokDF2,remDF1,remDF2,tfDF1,tfDF2,idfDF1,idfDF2,cosDF,Asmblr,dTree))
-
+      .setStages(Array(sqlDF, tokDF1,tokDF2,remDF1,remDF2,tfDF1,tfDF2,idfDF1,idfDF2,cosDF,w2vDF1,w2vDF2,Asmblr,dTree))
 
    // Search through decision tree's maxDepth parameter for best model
     val paramGrid = new ParamGridBuilder()
@@ -193,12 +183,12 @@ object Big_Data {
 
     val bestModel = cvModel.bestModel
     println("The Best Model and Parameters:\n--------------------")
-    println(bestModel.asInstanceOf[org.apache.spark.ml.PipelineModel].stages(11))
+    println(bestModel.asInstanceOf[org.apache.spark.ml.PipelineModel].stages(13))
     bestModel.asInstanceOf[org.apache.spark.ml.PipelineModel]
-      .stages(11)
+      .stages(13)
       .extractParamMap
 
-    val treeModel = bestModel.asInstanceOf[org.apache.spark.ml.PipelineModel].stages(11).asInstanceOf[DecisionTreeClassificationModel]
+    val treeModel = bestModel.asInstanceOf[org.apache.spark.ml.PipelineModel].stages(13).asInstanceOf[DecisionTreeClassificationModel]
     println("Learned classification tree model:\n" + treeModel.toDebugString)
 
     val predictions = cvModel.transform(info_truthDF)
@@ -229,7 +219,6 @@ object Big_Data {
 
     val precisionScore = truep / (truep + falsep)
     val recallScore = truep / (truep + falsen)
-
 
     println("counttotal : " + counttotal)
     println("correct : " + correct)
